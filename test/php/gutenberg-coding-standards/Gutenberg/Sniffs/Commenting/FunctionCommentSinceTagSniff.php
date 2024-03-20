@@ -33,7 +33,11 @@ class FunctionCommentSinceTagSniff implements Sniff {
 	 * @return array<int|string>
 	 */
 	public function register() {
-		return array( T_FUNCTION );
+		return array(
+			T_FUNCTION,
+			T_PROPERTY,
+			T_CLASS
+		);
 	}
 
 	/**
@@ -48,21 +52,49 @@ class FunctionCommentSinceTagSniff implements Sniff {
 			return;
 		}
 
+		$tokens = $phpcsFile->getTokens();
+		$token  = $tokens[ $stackPtr ];
+
+		if ( 'T_FUNCTION' === $token['type'] ) {
+			foreach ( $wrapping_tokens_to_check as $wrapping_token_to_check ) {
+				if ( false !== $phpcsFile->getCondition( $stackPtr, $wrapping_token_to_check, false ) ) {
+					// This sniff only processes functions, not interfaces and traits.
+					//return;
+				}
+			}
+
+			$this->process_function_or_method( $phpcsFile, $stackPtr );
+			return;
+		}
+
+		if ( 'T_PROPERTY' === $token['type'] ) {
+			$this->process_class_property( $phpcsFile, $stackPtr );
+		}
+
+		if ( 'T_CLASS' === $token['type'] ) {
+			$this->process_class( $phpcsFile, $stackPtr );
+		}
+	}
+
+	public function process_function_or_method( File $phpcsFile, $stackPtr ) {
+
+	}
+
+	public function process_property( File $phpcsFile, $stackPtr ) {
+
+	}
+
+	protected function process_function_or_method( File $phpcsFile, $stackPtr )
+	{
 		$tokens        = $phpcsFile->getTokens();
 		$function_name = $phpcsFile->getDeclarationName( $stackPtr );
 
 		$wrapping_tokens_to_check = array(
-			T_CLASS,
 			T_INTERFACE,
 			T_TRAIT,
 		);
 
-		foreach ( $wrapping_tokens_to_check as $wrapping_token_to_check ) {
-			if ( false !== $phpcsFile->getCondition( $stackPtr, $wrapping_token_to_check, false ) ) {
-				// This sniff only processes functions, not class methods.
-				return;
-			}
-		}
+
 
 		$missing_since_tag_error_message = sprintf( '@since tag is missing for the "%s()" function.', $function_name );
 
