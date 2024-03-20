@@ -85,7 +85,6 @@ Settings related to colors.
 | Property  | Type   | Default | Props  |
 | ---       | ---    | ---    |---   |
 | background | boolean | true |  |
-| caption | boolean | true |  |
 | custom | boolean | true |  |
 | customDuotone | boolean | true |  |
 | customGradient | boolean | true |  |
@@ -99,6 +98,7 @@ Settings related to colors.
 | text | boolean | true |  |
 | heading | boolean | true |  |
 | button | boolean | true |  |
+| caption | boolean | true |  |
 
 ---
 
