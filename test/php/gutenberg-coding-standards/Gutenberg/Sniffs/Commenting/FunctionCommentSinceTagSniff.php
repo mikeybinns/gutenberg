@@ -95,10 +95,16 @@ class FunctionCommentSinceTagSniff implements Sniff {
 			}
 		}
 
-		$is_class_method = $phpcsFile->getCondition( $stackPtr, T_CLASS, false );
+		$class_token = $phpcsFile->getCondition( $stackPtr, T_CLASS, false );
+		$is_class_method = false !== $class_token;
+
+		if ( $is_class_method ) {
+			$class_name = $phpcsFile->getDeclarationName($class_token);
+		}
+
 		$missing_since_tag_error_message = sprintf(
 			'@since tag is missing for the "%s()" %s.',
-			$function_name,
+			$is_class_method ? "$class_name::$function_name" : $function_name,
 			$is_class_method ? 'method' : 'function'
 		);
 
@@ -154,7 +160,7 @@ class FunctionCommentSinceTagSniff implements Sniff {
 			$version_token,
 			'InvalidSinceTagVersionValue',
 			array(
-				$function_name,
+				$is_class_method ? "$class_name::$function_name" : $function_name,
 				$is_class_method ? 'method' : 'function',
 				$version_value,
 			)
