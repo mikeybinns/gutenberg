@@ -98,7 +98,7 @@ class FunctionCommentSinceTagSniff implements Sniff {
 		$function_name = $phpcsFile->getDeclarationName( $stackPtr );
 
 		if ( $is_class_method ) {
-			$function_name = $phpcsFile->getDeclarationName( $class_token . '::' . $function_name );
+			$function_name = $phpcsFile->getDeclarationName( $class_token ) . '::' . $function_name;
 		}
 
 		$missing_since_tag_error_message = sprintf(
