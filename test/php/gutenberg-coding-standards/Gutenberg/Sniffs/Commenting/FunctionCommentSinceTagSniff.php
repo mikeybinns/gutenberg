@@ -78,11 +78,8 @@ class FunctionCommentSinceTagSniff implements Sniff {
 
 	}
 
-	protected function process_function_token( File $phpcsFile, $stackPtr )
-	{
-		$tokens        = $phpcsFile->getTokens();
-		$function_name = $phpcsFile->getDeclarationName( $stackPtr );
-
+	protected function process_function_token( File $phpcsFile, $stackPtr ) {
+		$tokens                   = $phpcsFile->getTokens();
 		$wrapping_tokens_to_check = array(
 			T_INTERFACE,
 			T_TRAIT,
@@ -90,21 +87,23 @@ class FunctionCommentSinceTagSniff implements Sniff {
 
 		foreach ( $wrapping_tokens_to_check as $wrapping_token_to_check ) {
 			if ( false !== $phpcsFile->getCondition( $stackPtr, $wrapping_token_to_check, false ) ) {
-				// This sniff only processes functions, not interfaces and traits.
+				// This sniff only processes functions and class methods, not interfaces and traits.
 				return;
 			}
 		}
 
-		$class_token = $phpcsFile->getCondition( $stackPtr, T_CLASS, false );
+		$class_token     = $phpcsFile->getCondition( $stackPtr, T_CLASS, false );
 		$is_class_method = false !== $class_token;
 
+		$function_name = $phpcsFile->getDeclarationName( $stackPtr );
+
 		if ( $is_class_method ) {
-			$class_name = $phpcsFile->getDeclarationName($class_token);
+			$function_name = $phpcsFile->getDeclarationName( $class_token . '::' . $function_name );
 		}
 
 		$missing_since_tag_error_message = sprintf(
 			'@since tag is missing for the "%s()" %s.',
-			$is_class_method ? "$class_name::$function_name" : $function_name,
+			$function_name,
 			$is_class_method ? 'method' : 'function'
 		);
 
@@ -134,7 +133,7 @@ class FunctionCommentSinceTagSniff implements Sniff {
 		}
 
 		// This is the first non-docblock token, so the next token should be used.
-		++$doc_block_start_token;
+		++ $doc_block_start_token;
 
 		$since_tag_token = $phpcsFile->findNext( T_DOC_COMMENT_TAG, $doc_block_start_token, $doc_block_end_token, false, '@since', true );
 		if ( false === $since_tag_token ) {
@@ -160,7 +159,7 @@ class FunctionCommentSinceTagSniff implements Sniff {
 			$version_token,
 			'InvalidSinceTagVersionValue',
 			array(
-				$is_class_method ? "$class_name::$function_name" : $function_name,
+				$function_name,
 				$is_class_method ? 'method' : 'function',
 				$version_value,
 			)
