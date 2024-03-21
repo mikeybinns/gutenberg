@@ -56,35 +56,29 @@ class FunctionCommentSinceTagSniff implements Sniff {
 		$token  = $tokens[ $stackPtr ];
 
 		if ( 'T_FUNCTION' === $token['type'] ) {
-			foreach ( $wrapping_tokens_to_check as $wrapping_token_to_check ) {
-				if ( false !== $phpcsFile->getCondition( $stackPtr, $wrapping_token_to_check, false ) ) {
-					// This sniff only processes functions, not interfaces and traits.
-					//return;
-				}
-			}
-
-			$this->process_function_or_method( $phpcsFile, $stackPtr );
+			$this->process_function_token( $phpcsFile, $stackPtr );
 			return;
 		}
 
 		if ( 'T_PROPERTY' === $token['type'] ) {
-			$this->process_class_property( $phpcsFile, $stackPtr );
+			$this->process_class_property_token( $phpcsFile, $stackPtr );
+			return;
 		}
 
 		if ( 'T_CLASS' === $token['type'] ) {
-			$this->process_class( $phpcsFile, $stackPtr );
+			$this->process_class_token( $phpcsFile, $stackPtr );
 		}
 	}
 
-	public function process_function_or_method( File $phpcsFile, $stackPtr ) {
+	public function process_class_token( File $phpcsFile, $stackPtr ) {
 
 	}
 
-	public function process_property( File $phpcsFile, $stackPtr ) {
+	public function process_class_property_token( File $phpcsFile, $stackPtr ) {
 
 	}
 
-	protected function process_function_or_method( File $phpcsFile, $stackPtr )
+	protected function process_function_token( File $phpcsFile, $stackPtr )
 	{
 		$tokens        = $phpcsFile->getTokens();
 		$function_name = $phpcsFile->getDeclarationName( $stackPtr );
@@ -94,9 +88,19 @@ class FunctionCommentSinceTagSniff implements Sniff {
 			T_TRAIT,
 		);
 
+		foreach ( $wrapping_tokens_to_check as $wrapping_token_to_check ) {
+			if ( false !== $phpcsFile->getCondition( $stackPtr, $wrapping_token_to_check, false ) ) {
+				// This sniff only processes functions, not interfaces and traits.
+				return;
+			}
+		}
 
-
-		$missing_since_tag_error_message = sprintf( '@since tag is missing for the "%s()" function.', $function_name );
+		$is_class_method = $phpcsFile->getCondition( $stackPtr, T_CLASS, false );
+		$missing_since_tag_error_message = sprintf(
+			'@since tag is missing for the "%s()" %s.',
+			$function_name,
+			$is_class_method ? 'method' : 'function'
+		);
 
 		// All these tokens could be present before the docblock.
 		$tokens_before_the_docblock = array(
@@ -146,11 +150,12 @@ class FunctionCommentSinceTagSniff implements Sniff {
 		}
 
 		$phpcsFile->addError(
-			'Invalid @since version value for the "%s()" function: "%s". Version value must be greater than or equal to 0.0.1.',
+			'Invalid @since version value for the "%s()" %s: "%s". Version value must be greater than or equal to 0.0.1.',
 			$version_token,
 			'InvalidSinceTagVersionValue',
 			array(
 				$function_name,
+				$is_class_method ? 'method' : 'function',
 				$version_value,
 			)
 		);
