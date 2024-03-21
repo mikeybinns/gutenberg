@@ -4,12 +4,13 @@
 import { useSelect, useDispatch } from '@wordpress/data';
 import { store as blockEditorStore } from '@wordpress/block-editor';
 import { useEffect } from '@wordpress/element';
+import { applyFilters } from '@wordpress/hooks';
 
-const PAGE_CONTENT_BLOCKS = [
+const PAGE_CONTENT_BLOCKS = applyFilters( 'editor.postContentBlockTypes', [
 	'core/post-title',
 	'core/post-featured-image',
 	'core/post-content',
-];
+] );
 
 function useDisableNonPageContentBlocks() {
 	const contentIds = useSelect( ( select ) => {
