@@ -70,6 +70,8 @@ const {
 	useHasFiltersPanel,
 	useHasImageSettingsPanel,
 	useGlobalStyle,
+	useHasBackgroundPanel,
+	BackgroundPanel: StylesBackgroundPanel,
 	BorderPanel: StylesBorderPanel,
 	ColorPanel: StylesColorPanel,
 	TypographyPanel: StylesTypographyPanel,
@@ -121,6 +123,7 @@ function ScreenBlock( { name, variation } ) {
 	}
 
 	const blockVariations = useBlockVariations( name );
+	const hasBackgroundPanel = useHasBackgroundPanel( settings );
 	const hasTypographyPanel = useHasTypographyPanel( settings );
 	const hasColorPanel = useHasColorPanel( settings );
 	const hasBorderPanel = useHasBorderPanel( settings );
@@ -232,6 +235,43 @@ function ScreenBlock( { name, variation } ) {
 		setStyle( { ...newStyle, border: { ...updatedBorder, radius } } );
 	};
 
+	const onChangeBackground = ( newStyle ) => {
+		console.log( 'newStyle', newStyle );
+		const backgroundImage = newStyle?.background?.backgroundImage;
+		let backgroundStyles;
+
+		// Set block background defaults.
+		if ( backgroundImage?.source === 'file' && !! backgroundImage?.url ) {
+			if ( ! newStyle?.background?.backgroundSize ) {
+				backgroundStyles = {
+					backgroundSize: 'cover',
+				};
+			}
+
+			if (
+				'contain' === newStyle?.background?.backgroundSize &&
+				! newStyle?.background?.backgroundPosition
+			) {
+				backgroundStyles = {
+					backgroundPosition: 'center',
+				};
+			}
+		}
+
+		setStyle( {
+			...newStyle,
+			background: {
+				...newStyle?.background,
+				...backgroundStyles,
+			}
+		} );
+	};
+
+	// Initial control values where no block style is set.
+	const defaultBackgroundControlValues = {
+		backgroundSize: 'cover',
+	};
+
 	return (
 		<>
 			<ScreenHeader
@@ -293,6 +333,15 @@ function ScreenBlock( { name, variation } ) {
 					onChange={ onChangeLightbox }
 					value={ userSettings }
 					inheritedValue={ settings }
+				/>
+			) }
+			{ hasBackgroundPanel && (
+				<StylesBackgroundPanel
+					inheritedValue={ inheritedStyle }
+					value={ style }
+					onChange={ onChangeBackground }
+					settings={ settings }
+					defaultControlValues={ defaultBackgroundControlValues }
 				/>
 			) }
 
