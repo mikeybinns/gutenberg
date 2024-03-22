@@ -25,6 +25,11 @@ import {
 	VariationsPanel,
 } from './variations/variations-panel';
 
+// Initial control values where no block style is set.
+const BACKGROUND_BLOCK_DEFAULT_CONTROL_VALUES = {
+	backgroundSize: 'cover',
+};
+
 function applyFallbackStyle( border ) {
 	if ( ! border ) {
 		return border;
@@ -79,6 +84,7 @@ const {
 	FiltersPanel: StylesFiltersPanel,
 	ImageSettingsPanel,
 	AdvancedPanel: StylesAdvancedPanel,
+	setBackgroundStyleDefaults,
 } = unlock( blockEditorPrivateApis );
 
 function ScreenBlock( { name, variation } ) {
@@ -236,40 +242,16 @@ function ScreenBlock( { name, variation } ) {
 	};
 
 	const onChangeBackground = ( newStyle ) => {
-		console.log( 'newStyle', newStyle );
-		const backgroundImage = newStyle?.background?.backgroundImage;
-		let backgroundStyles;
-
-		// Set block background defaults.
-		if ( backgroundImage?.source === 'file' && !! backgroundImage?.url ) {
-			if ( ! newStyle?.background?.backgroundSize ) {
-				backgroundStyles = {
-					backgroundSize: 'cover',
-				};
-			}
-
-			if (
-				'contain' === newStyle?.background?.backgroundSize &&
-				! newStyle?.background?.backgroundPosition
-			) {
-				backgroundStyles = {
-					backgroundPosition: 'center',
-				};
-			}
-		}
-
+		const backgroundStyles = setBackgroundStyleDefaults(
+			newStyle?.background
+		);
 		setStyle( {
 			...newStyle,
 			background: {
 				...newStyle?.background,
 				...backgroundStyles,
-			}
+			},
 		} );
-	};
-
-	// Initial control values where no block style is set.
-	const defaultBackgroundControlValues = {
-		backgroundSize: 'cover',
 	};
 
 	return (
@@ -341,7 +323,9 @@ function ScreenBlock( { name, variation } ) {
 					value={ style }
 					onChange={ onChangeBackground }
 					settings={ settings }
-					defaultControlValues={ defaultBackgroundControlValues }
+					defaultControlValues={
+						BACKGROUND_BLOCK_DEFAULT_CONTROL_VALUES
+					}
 				/>
 			) }
 
