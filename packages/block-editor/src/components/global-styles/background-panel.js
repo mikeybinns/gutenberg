@@ -22,6 +22,8 @@ import {
 	__experimentalItemGroup as ItemGroup,
 	__experimentalHStack as HStack,
 	__experimentalTruncate as Truncate,
+	Dropdown,
+	__experimentalDropdownContentWrapper as DropdownContentWrapper,
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { store as noticesStore } from '@wordpress/notices';
@@ -30,6 +32,7 @@ import { useCallback, Platform, useRef } from '@wordpress/element';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { focus } from '@wordpress/dom';
 import { isBlobURL } from '@wordpress/blob';
+import { reusableBlock, Icon, chevronRight } from '@wordpress/icons';
 
 /**
  * Internal dependencies
@@ -134,48 +137,120 @@ export const backgroundPositionToCoords = ( value ) => {
 	return { x, y };
 };
 
-function InspectorImagePreview( { label, filename, url: imgUrl } ) {
+
+const popoverProps = {
+	placement: 'left-start',
+	offset: 36,
+	shift: true,
+}
+function InspectorImagePreview( { label, filename, url: imgUrl, children, allowPopover = false } ) {
 	const imgLabel = label || getFilename( imgUrl );
-	return (
-		<ItemGroup as="span">
-			<HStack justify="flex-start" as="span">
-				<span
-					className={ classnames(
-						'block-editor-global-styles-background-panel__inspector-image-indicator-wrapper',
-						{
-							'has-image': imgUrl,
-						}
-					) }
-					aria-hidden
-				>
-					{ imgUrl && (
-						<span
-							className="block-editor-global-styles-background-panel__inspector-image-indicator"
-							style={ {
-								backgroundImage: `url(${ imgUrl })`,
-							} }
-						/>
-					) }
-				</span>
-				<FlexItem as="span">
-					<Truncate
-						numberOfLines={ 1 }
-						className="block-editor-global-styles-background-panel__inspector-media-replace-title"
+	// @TODO abstract
+	if ( ! allowPopover ) {
+		return (
+			<ItemGroup as="span" className="block-editor-global-styles-background-panel__image-preview">
+				<HStack justify="flex-start" as="span" className="block-editor-global-styles-background-panel__image-preview-content">
+					<span
+						className={ classnames(
+							'block-editor-global-styles-background-panel__inspector-image-indicator-wrapper',
+							{
+								'has-image': imgUrl,
+							}
+						) }
+						aria-hidden
 					>
-						{ imgLabel }
-					</Truncate>
-					<VisuallyHidden as="span">
-						{ filename
-							? sprintf(
+						{ imgUrl && (
+							<span
+								className="block-editor-global-styles-background-panel__inspector-image-indicator"
+								style={ {
+									backgroundImage: `url(${ imgUrl })`,
+								} }
+							/>
+						) }
+					</span>
+					<FlexItem as="span">
+						<Truncate
+							numberOfLines={ 1 }
+							className="block-editor-global-styles-background-panel__inspector-media-replace-title"
+						>
+							{ imgLabel }
+						</Truncate>
+						<VisuallyHidden as="span">
+							{ filename
+								? sprintf(
 									/* translators: %s: file name */
 									__( 'Selected image: %s' ),
 									filename
-							  )
-							: __( 'No image selected' ) }
-					</VisuallyHidden>
-				</FlexItem>
-			</HStack>
-		</ItemGroup>
+								)
+								: __( 'No image selected' ) }
+						</VisuallyHidden>
+					</FlexItem>
+				</HStack>
+			</ItemGroup>
+		);
+	}
+	return(
+		<Dropdown
+			popoverProps={ popoverProps }
+			className="block-editor-global-styles-background-panel__inspector-media-replace"
+			renderToggle={ ( { onToggle, isOpen } ) => {
+				const toggleProps = {
+					onClick: onToggle,
+					className: classnames(
+						'block-editor-global-styles-background-panel__dropdown',
+						{ 'is-open': isOpen }
+					),
+					'aria-expanded': isOpen,
+					'aria-label': __( 'Background size, position and repeat options.' ),
+				};
+				return (
+					<ItemGroup as="button" { ...toggleProps }>
+						<HStack justify="flex-start" as="span">
+							<span
+								className={ classnames(
+									'block-editor-global-styles-background-panel__inspector-image-indicator-wrapper',
+									{
+										'has-image': imgUrl,
+									}
+								) }
+								aria-hidden
+							>
+								{ imgUrl && (
+									<span
+										className="block-editor-global-styles-background-panel__inspector-image-indicator"
+										style={ {
+											backgroundImage: `url(${ imgUrl })`,
+										} }
+									/>
+								) }
+							</span>
+							<FlexItem as="span">
+								<Truncate
+									numberOfLines={ 1 }
+									className="block-editor-global-styles-background-panel__inspector-media-replace-title"
+								>
+									{ imgLabel }
+								</Truncate>
+								<VisuallyHidden as="span">
+									{ filename
+										? sprintf(
+											/* translators: %s: file name */
+											__( 'Selected image: %s' ),
+											filename
+										)
+										: __( 'No image selected' ) }
+								</VisuallyHidden>
+							</FlexItem>
+						</HStack>
+					</ItemGroup>
+				);
+			} }
+			renderContent={ ( { onClose } ) => (
+				<DropdownContentWrapper>
+					{ children }
+				</DropdownContentWrapper>
+			) }
+		/>
 	);
 }
 
@@ -185,6 +260,8 @@ function BackgroundImageToolsPanelItem( {
 	onChange,
 	style,
 	inheritedValue,
+	settings,
+	defaultControlValues,
 } ) {
 	const mediaUpload = useSelect(
 		( select ) => select( blockEditorStore ).getSettings().mediaUpload,
@@ -273,6 +350,8 @@ function BackgroundImageToolsPanelItem( {
 		hasBackgroundImageValue( style ) ||
 		hasBackgroundImageValue( inheritedValue );
 
+	const shouldShowBackgroundSizeControls = hasValue && settings?.background?.backgroundSize;
+
 	return (
 		<ToolsPanelItem
 			className="single-column"
@@ -287,20 +366,31 @@ function BackgroundImageToolsPanelItem( {
 				className="block-editor-global-styles-background-panel__inspector-media-replace-container"
 				ref={ replaceContainerRef }
 			>
+				<InspectorImagePreview
+					label={ __( 'Background image' ) }
+					filename={ title || __( 'Untitled' ) }
+					url={ url }
+					allowPopover={ shouldShowBackgroundSizeControls }
+				>
+					<BackgroundSizeToolsPanelItem
+						onChange={ onChange }
+						panelId={ panelId }
+						isShownByDefault={ true }
+						style={ style }
+						inheritedValue={ inheritedValue }
+						defaultControlValues={ defaultControlValues }
+					/>
+				</InspectorImagePreview>
 				<MediaReplaceFlow
 					mediaId={ id }
 					mediaURL={ url }
 					allowedTypes={ [ IMAGE_BACKGROUND_TYPE ] }
 					accept="image/*"
 					onSelect={ onSelectMedia }
-					name={
-						<InspectorImagePreview
-							label={ __( 'Background image' ) }
-							filename={ title || __( 'Untitled' ) }
-							url={ url }
-						/>
-					}
 					variant="secondary"
+					name={
+						<Icon icon={ reusableBlock } />
+					}
 				>
 					{ hasValue && (
 						<MenuItem
@@ -565,8 +655,6 @@ export default function BackgroundPanel( {
 			background: {},
 		};
 	}, [] );
-	const shouldShowBackgroundSizeControls =
-		settings?.background?.backgroundSize;
 
 	return (
 		<Wrapper
@@ -581,17 +669,9 @@ export default function BackgroundPanel( {
 				isShownByDefault={ defaultControls.backgroundImage }
 				style={ value }
 				inheritedValue={ inheritedValue }
+				defaultControlValues={ defaultControlValues }
+				settings={ settings }
 			/>
-			{ shouldShowBackgroundSizeControls && (
-				<BackgroundSizeToolsPanelItem
-					onChange={ onChange }
-					panelId={ panelId }
-					isShownByDefault={ defaultControls.backgroundSize }
-					style={ value }
-					inheritedValue={ inheritedValue }
-					defaultControlValues={ defaultControlValues }
-				/>
-			) }
 		</Wrapper>
 	);
 }
